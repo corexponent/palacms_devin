@@ -2,9 +2,8 @@
 	import { createEventDispatcher } from 'svelte'
 	import * as _ from 'lodash-es'
 	import { onMount } from 'svelte'
-	import Icon from '@iconify/svelte'
-	import { draggable, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-	import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
+        import Icon from '@iconify/svelte'
+        import { draggable, dropTargetForElements, attachClosestEdge, extractClosestEdge } from '$lib/builder/utils/dnd'
 	import pluralize from 'pluralize'
 	import type { Field } from '$lib/common/models/Field'
 	import type { Entry } from '$lib/common/models/Entry'
@@ -77,29 +76,33 @@
 	let drag_handle_element = $state()
 	let element = $state()
 
-	onMount(async () => {
-		draggable({
-			element,
-			dragHandle: drag_handle_element,
-			getInitialData: () => ({})
-		})
-		dropTargetForElements({
-			element,
-			getData({ input, element }) {
-				return attachClosestEdge(
-					{},
-					{
-						element,
-						input,
-						allowedEdges: ['top', 'bottom']
-					}
-				)
-			},
-			onDrag({ self, source }) {
-				dispatch('hover', extractClosestEdge(self.data))
-			},
-			onDragLeave() {
-				dispatch('hover', null)
+        onMount(async () => {
+                const destroyDrag = draggable({
+                        element,
+                        dragHandle: drag_handle_element,
+                        getInitialData: () => ({
+                                item: { entry, index }
+                        })
+                })
+                dropTargetForElements({
+                        element,
+                        getData({ input, element }) {
+                                return attachClosestEdge(
+                                        {
+                                                item: { entry, index }
+                                        },
+                                        {
+                                                element,
+                                                input,
+                                                allowedEdges: ['top', 'bottom']
+                                        }
+                                )
+                        },
+                        onDrag({ self }) {
+                                dispatch('hover', extractClosestEdge(self.data))
+                        },
+                        onDragLeave() {
+                                dispatch('hover', null)
 			},
 			onDrop({ self, source }) {
 				const item_dragged_over = self.data.item
@@ -115,9 +118,12 @@
 					// actions.rearrange(item_being_dragged, item_dragged_over.index + 1)
 				}
 				dispatch('hover', null)
-			}
-		})
-	})
+                        }
+                })
+                return () => {
+                        destroyDrag?.()
+                }
+        })
 	let singular_label = $derived(pluralize.singular(field.label))
 	let item_image = $derived(get_image(subfields))
 	let item_icon = $derived(get_icon(subfields))

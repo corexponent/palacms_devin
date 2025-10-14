@@ -12,8 +12,7 @@
 	import Fields from '$lib/builder/components/Fields/FieldsContent.svelte'
 	import { flip } from 'svelte/animate'
 	import { toast } from 'svelte-sonner'
-	import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-	import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
+        import { dropTargetForElements, attachClosestEdge, extractClosestEdge } from '$lib/builder/utils/dnd'
 	import * as Tabs from '$lib/components/ui/tabs'
 	import { Cuboid, SquarePen, Loader } from 'lucide-svelte'
 	import { page } from '$app/state'
@@ -99,12 +98,12 @@
 		adding_block = true
 	}
 
-	function drag_target(element, block) {
-		dropTargetForElements({
-			element,
-			getData({ input, element }) {
-				return attachClosestEdge(
-					{ block },
+        function drag_target(element, block) {
+                return dropTargetForElements({
+                        element,
+                        getData({ input, element }) {
+                                return attachClosestEdge(
+                                        { block },
 					{
 						element,
 						input,
@@ -112,12 +111,12 @@
 					}
 				)
 			},
-			onDragStart() {
-				$dragging_symbol = true
-			},
-			onDragEnd() {
-				$dragging_symbol = false
-			},
+                        onDragStart() {
+                                $dragging_symbol = true
+                        },
+                        onDragEnd() {
+                                $dragging_symbol = false
+                        },
 			onDrop({ self, source }) {
 				if (!site) return
 				const closestEdgeOfTarget = extractClosestEdge(self.data)
