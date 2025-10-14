@@ -1,0 +1,64 @@
+services:
+  palacms:
+    # Use prebuilt image from GitHub Container Registry
+    image: ghcr.io/palacms/palacms:latest
+    
+    # Alternatively, build from local Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    
+    container_name: palacms
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Port mapping
+    ports:
+      - "8080:8080"
+    
+    # Environment variables
+    environment:
+      # Optional: Set initial superuser credentials
+      # These are only used on first startup to create the initial admin user
+      - PALA_SUPERUSER_EMAIL=${PALA_SUPERUSER_EMAIL:-}
+      - PALA_SUPERUSER_PASSWORD=${PALA_SUPERUSER_PASSWORD:-}
+      
+      # Optional: Set initial PalaCMS user credentials
+      - PALA_USER_EMAIL=${PALA_USER_EMAIL:-}
+      - PALA_USER_PASSWORD=${PALA_USER_PASSWORD:-}
+      
+      # Optional: Version tag
+      - PALA_VERSION=${PALA_VERSION:-3.0.0-beta.1}
+    
+    # Volume for persistent data storage
+    volumes:
+      - palacms-data:/app/pb_data
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (optional, adjust based on your needs)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 512M
+
+volumes:
+  # Named volume for PalaCMS data persistence
+  palacms-data:
+    driver: local
+
+# Optional: Add a network if you need to connect to other services
+# networks:
+#   palacms-network:
+#     driver: bridge
