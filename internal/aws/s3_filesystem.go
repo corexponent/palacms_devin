@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 type S3FileSystem struct {
@@ -230,5 +229,3 @@ func getContentType(filename string) string {
 	
 	return "application/octet-stream"
 }
-
-var _ filesystem.System = (*S3FileSystem)(nil)
