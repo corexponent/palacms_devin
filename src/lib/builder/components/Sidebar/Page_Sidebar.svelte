@@ -6,8 +6,7 @@
 	import Content from '../Content.svelte'
 	import { Button } from '$lib/components/ui/button'
 	import { goto } from '$app/navigation'
-	import { dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-	import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
+        import { dropTargetForElements, attachClosestEdge, extractClosestEdge } from '$lib/builder/utils/dnd'
 	import { site_html } from '$lib/builder/stores/app/page'
 	import * as Tabs from '$lib/components/ui/tabs'
 	import { Cuboid, SquarePen, ExternalLink } from 'lucide-svelte'
@@ -29,12 +28,12 @@
 	const available_symbols = $derived(page_type_symbols.map(({ symbol }) => SiteSymbols.one(symbol)).filter((symbol) => !!symbol))
 	const has_symbols = $derived(available_symbols?.length !== 0)
 
-	function drag_target(element, block) {
-		dropTargetForElements({
-			element,
-			getData({ input, element }) {
-				return attachClosestEdge(
-					{ block },
+        function drag_target(element, block) {
+                return dropTargetForElements({
+                        element,
+                        getData({ input, element }) {
+                                return attachClosestEdge(
+                                        { block },
 					{
 						element,
 						input,
