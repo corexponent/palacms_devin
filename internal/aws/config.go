@@ -11,11 +11,11 @@ type Config struct {
 	S3Region        string
 	S3AccessKey     string
 	S3SecretKey     string
-	S3Endpoint      string // Optional, for S3-compatible services
-	S3PublicURL     string // Optional, custom domain for public URLs
+	S3Endpoint      string
+	S3PublicURL     string
 	
-	DatabaseType    string // "sqlite", "postgres", or "mysql"
-	DatabaseURL     string // Connection string for RDS
+	DatabaseType    string
+	DatabaseURL     string
 	
 	SESEnabled      bool
 	SESRegion       string
@@ -26,6 +26,14 @@ type Config struct {
 	CloudFrontEnabled      bool
 	CloudFrontDistribution string
 	CloudFrontDomain       string
+	
+	CognitoEnabled      bool
+	CognitoUserPoolId   string
+	CognitoClientId     string
+	CognitoClientSecret string
+	CognitoRegion       string
+	CognitoAccessKey    string
+	CognitoSecretKey    string
 }
 
 func LoadConfig() *Config {
@@ -50,6 +58,14 @@ func LoadConfig() *Config {
 		CloudFrontEnabled:      getEnvBool("AWS_CLOUDFRONT_ENABLED", false),
 		CloudFrontDistribution: os.Getenv("AWS_CLOUDFRONT_DISTRIBUTION_ID"),
 		CloudFrontDomain:       os.Getenv("AWS_CLOUDFRONT_DOMAIN"),
+		
+		CognitoEnabled:      getEnvBool("AWS_COGNITO_ENABLED", false),
+		CognitoUserPoolId:   os.Getenv("AWS_COGNITO_USER_POOL_ID"),
+		CognitoClientId:     os.Getenv("AWS_COGNITO_CLIENT_ID"),
+		CognitoClientSecret: os.Getenv("AWS_COGNITO_CLIENT_SECRET"),
+		CognitoRegion:       getEnvDefault("AWS_COGNITO_REGION", "us-east-1"),
+		CognitoAccessKey:    getEnvDefault("AWS_COGNITO_ACCESS_KEY_ID", os.Getenv("AWS_ACCESS_KEY_ID")),
+		CognitoSecretKey:    getEnvDefault("AWS_COGNITO_SECRET_ACCESS_KEY", os.Getenv("AWS_SECRET_ACCESS_KEY")),
 	}
 }
 
