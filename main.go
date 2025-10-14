@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/palacms/palacms/internal"
+	"github.com/palacms/palacms/internal/aws"
 	_ "github.com/palacms/palacms/migrations"
 	"github.com/pocketbase/pocketbase"
 )
@@ -21,6 +22,18 @@ func main() {
 }
 
 func setup(pb *pocketbase.PocketBase) error {
+	awsIntegration, err := aws.Setup(pb)
+	if err != nil {
+		log.Printf("Warning: AWS integration setup failed: %v", err)
+	} else {
+		if awsIntegration.IsS3Enabled() {
+			log.Println("AWS S3 storage is active")
+		}
+		if awsIntegration.IsSESEnabled() {
+			log.Println("AWS SES mailer is active")
+		}
+	}
+
 	if err := internal.RegisterValidation(pb); err != nil {
 		return err
 	}
