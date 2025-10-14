@@ -10,9 +10,10 @@ import (
 )
 
 type Integration struct {
-	Config     *Config
-	S3Storage  *S3FileSystem
-	SESMailer  *SESMailer
+	Config      *Config
+	S3Storage   *S3FileSystem
+	SESMailer   *SESMailer
+	CognitoAuth *CognitoAuth
 }
 
 func Setup(app *pocketbase.PocketBase) (*Integration, error) {
@@ -24,6 +25,11 @@ func Setup(app *pocketbase.PocketBase) (*Integration, error) {
 	
 	integration := &Integration{
 		Config: cfg,
+	}
+	
+	if err := SetupDatabase(app, cfg); err != nil {
+		log.Printf("Warning: Database setup failed: %v", err)
+		log.Printf("Falling back to SQLite")
 	}
 	
 	if cfg.S3Enabled {
@@ -54,8 +60,19 @@ func Setup(app *pocketbase.PocketBase) (*Integration, error) {
 		}
 	}
 	
-	if cfg.DatabaseType != "sqlite" {
-		log.Printf("Database type: %s", cfg.DatabaseType)
+	if cfg.CognitoEnabled {
+		cognito, err := NewCognitoAuth(cfg)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Cognito: %v", err)
+			log.Printf("Falling back to PocketBase authentication")
+		} else {
+			integration.CognitoAuth = cognito
+			log.Printf("AWS Cognito enabled: user_pool=%s, region=%s", cfg.CognitoUserPoolId, cfg.CognitoRegion)
+			
+			if err := SetupCognitoAuth(app, cognito); err != nil {
+				log.Printf("Warning: Failed to setup Cognito hooks: %v", err)
+			}
+		}
 	}
 	
 	return integration, nil
@@ -188,4 +205,8 @@ func (i *Integration) IsS3Enabled() bool {
 
 func (i *Integration) IsSESEnabled() bool {
 	return i.SESMailer != nil
+}
+
+func (i *Integration) IsCognitoEnabled() bool {
+	return i.CognitoAuth != nil
 }

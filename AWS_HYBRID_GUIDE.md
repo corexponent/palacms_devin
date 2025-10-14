@@ -575,3 +575,58 @@ For AWS hybrid mode support:
 ---
 
 **Start hybrid today:** Copy `.env.example` to `.env`, enable AWS services you need, and restart PalaCMS!
+
+### AWS Cognito Authentication
+
+Use AWS Cognito for enterprise-grade user authentication and management.
+
+**Environment Variables:**
+
+```bash
+# Enable Cognito authentication
+AWS_COGNITO_ENABLED=true
+
+# Cognito User Pool ID (required)
+AWS_COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
+
+# Cognito App Client ID (required)
+AWS_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Cognito App Client Secret (optional)
+AWS_COGNITO_CLIENT_SECRET=your-client-secret
+
+# Cognito region (default: us-east-1)
+AWS_COGNITO_REGION=us-east-1
+
+# AWS credentials (defaults to AWS_ACCESS_KEY_ID/SECRET_ACCESS_KEY if not set)
+AWS_COGNITO_ACCESS_KEY_ID=your-cognito-access-key
+AWS_COGNITO_SECRET_ACCESS_KEY=your-cognito-secret-key
+```
+
+**Benefits:**
+- Enterprise-grade user management
+- Multi-factor authentication (MFA)
+- Social identity providers (Google, Facebook, etc.)
+- SAML/OIDC federation
+- Advanced security features (account recovery, password policies)
+- Compliance certifications (HIPAA, SOC, PCI DSS)
+
+**Setup Steps:**
+1. Create Cognito User Pool in AWS Console
+2. Create App Client in the User Pool
+3. Configure authentication flows (allow USER_PASSWORD_AUTH)
+4. Set environment variables with Pool ID and Client ID
+5. Users can now authenticate with Cognito credentials
+
+**How It Works:**
+- When Cognito is enabled, authentication attempts first try Cognito
+- If Cognito authentication succeeds, user is automatically created/synced in PocketBase
+- Falls back to PocketBase authentication if Cognito fails
+- Cognito tokens are stored in user metadata for API access
+
+**User Management:**
+- Users can be managed through AWS Cognito Console
+- Supports email verification and password reset flows
+- Can import existing users to Cognito
+- Supports user attributes and custom claims
+
