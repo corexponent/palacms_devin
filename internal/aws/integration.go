@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/pocketbase/pocketbase"
@@ -78,17 +79,124 @@ func Setup(app *pocketbase.PocketBase) (*Integration, error) {
 }
 
 func setupS3FileHooks(app *pocketbase.PocketBase, s3fs *S3FileSystem) {
-	app.OnFileAfterTokenRequest().BindFunc(func(e *core.FileTokenEvent) error {
+	app.OnModelAfterCreateSuccess().BindFunc(func(e *core.ModelEvent) error {
+		record, ok := e.Model.(*core.Record)
+		if !ok {
+			return nil
+		}
+		
+		for _, field := range record.Collection().Fields {
+			if field.Type() != "file" {
+				continue
+			}
+			
+			files := record.GetStringSlice(field.GetName())
+			for _, filename := range files {
+				if filename == "" {
+					continue
+				}
+				
+				localPath := record.BaseFilesPath() + "/" + filename
+				
+				fs, err := app.NewFilesystem()
+				if err != nil {
+					log.Printf("Failed to create filesystem: %v", err)
+					continue
+				}
+				defer fs.Close()
+				
+				reader, err := fs.GetReader(localPath)
+				if err != nil {
+					log.Printf("Failed to read file %s: %v", localPath, err)
+					continue
+				}
+				
+				s3Key := fmt.Sprintf("%s/%s/%s", record.Collection().Name, record.Id, filename)
+				
+				if err := s3fs.UploadFile(reader, s3Key); err != nil {
+					log.Printf("Failed to upload %s to S3: %v", filename, err)
+					reader.Close()
+					continue
+				}
+				reader.Close()
+				
+				log.Printf("Successfully uploaded %s to S3 as %s", filename, s3Key)
+			}
+		}
+		
 		return nil
 	})
 	
+	app.OnModelAfterDeleteSuccess().BindFunc(func(e *core.ModelEvent) error {
+		record, ok := e.Model.(*core.Record)
+		if !ok {
+			return nil
+		}
+		
+		for _, field := range record.Collection().Fields {
+			if field.Type() != "file" {
+				continue
+			}
+			
+			files := record.GetStringSlice(field.GetName())
+			for _, filename := range files {
+				if filename == "" {
+					continue
+				}
+				
+				s3Key := fmt.Sprintf("%s/%s/%s", record.Collection().Name, record.Id, filename)
+				
+				if err := s3fs.DeleteFile(s3Key); err != nil {
+					log.Printf("Failed to delete %s from S3: %v", s3Key, err)
+					continue
+				}
+				
+				log.Printf("Successfully deleted %s from S3", s3Key)
+			}
+		}
+		
+		return nil
+	})
+	
+	app.OnFileDownloadRequest().BindFunc(func(e *core.FileDownloadRequestEvent) error {
+		s3Key := fmt.Sprintf("%s/%s/%s", e.Record.Collection().Name, e.Record.Id, e.File)
+		
+		exists, err := s3fs.FileExists(s3Key)
+		if err != nil || !exists {
+			return nil
+		}
+		
+		if err := s3fs.ServeFile(e.Response, e.Request, s3Key); err != nil {
+			log.Printf("Failed to serve file from S3: %v", err)
+			return nil
+		}
+		
+		e.PreventDefault()
+		return nil
+	})
+	
+	log.Println("S3 file hooks installed - files will be uploaded/downloaded from S3")
 }
 
 func (i *Integration) GetPublicURL(localPath string) string {
 	if i.S3Storage != nil {
-		return i.S3Storage.GetURL(localPath)
+		return i.S3Storage.GetFileURL(localPath)
 	}
 	return localPath
+}
+
+func (i *Integration) UploadToS3(reader io.Reader, key string) error {
+	if i.S3Storage == nil {
+		return fmt.Errorf("S3 storage is not enabled")
+	}
+	return i.S3Storage.UploadFile(reader, key)
+}
+
+func (i *Integration) DeleteFromS3(key string) error {
+	if i.S3Storage == nil {
+		return fmt.Errorf("S3 storage is not enabled")
+	}
+	return i.S3Storage.DeleteFile(key)
 }
 
 func (i *Integration) IsS3Enabled() bool {
