@@ -5,9 +5,9 @@
 	import { Button } from '$lib/components/ui/button'
 	import * as Dialog from '$lib/components/ui/dialog'
 	import { Input } from '$lib/components/ui/input'
-	import MenuPopup from '../../ui/Dropdown.svelte'
-	import { locale } from '../../stores/app/misc'
-	import { draggable } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
+        import MenuPopup from '../../ui/Dropdown.svelte'
+        import { locale, dragging_symbol } from '../../stores/app/misc'
+        import { draggable } from '$lib/builder/utils/dnd'
 	import IFrame from '../../components/IFrame.svelte'
 	import { createEventDispatcher, onMount } from 'svelte'
 	import { watch } from 'runed'
@@ -128,32 +128,37 @@
 	)
 
 	let element = $state()
-	$effect(() => {
-		if (element) {
-			draggable({
-				element,
-				getInitialData: () => ({ block: symbol }),
-				onDragStart: () => {
-					if (typeof window !== 'undefined') {
-						window.dispatchEvent(
-							new CustomEvent('palaDragStart', {
-								detail: { block: symbol }
-							})
-						)
-					}
-				},
-				onDrop: () => {
-					if (typeof window !== 'undefined') {
-						window.dispatchEvent(
-							new CustomEvent('palaDragEnd', {
-								detail: { block: symbol }
-							})
-						)
-					}
-				}
-			})
-		}
-	})
+        $effect(() => {
+                if (element) {
+                        const destroy = draggable({
+                                element,
+                                getInitialData: () => ({ block: symbol }),
+                                onDragStart: ({ data }) => {
+                                        $dragging_symbol = true
+                                        if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(
+                                                        new CustomEvent('palaDragStart', {
+                                                                detail: { block: data.block }
+                                                        })
+                                                )
+                                        }
+                                },
+                                onDrop: ({ data }) => {
+                                        $dragging_symbol = false
+                                        if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(
+                                                        new CustomEvent('palaDragEnd', {
+                                                                detail: { block: data?.block ?? symbol }
+                                                        })
+                                                )
+                                        }
+                                }
+                        })
+                        return () => {
+                                destroy?.()
+                        }
+                }
+        })
 	// move cursor to end of name
 	$effect(() => {
 		if (name_el) {
