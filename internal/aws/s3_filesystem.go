@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,10 +18,10 @@ import (
 )
 
 type S3FileSystem struct {
-	client      *s3.Client
-	bucket      string
-	publicURL   string
-	region      string
+	client    *s3.Client
+	bucket    string
+	publicURL string
+	region    string
 }
 
 func NewS3FileSystem(cfg *Config) (*S3FileSystem, error) {
@@ -72,23 +73,7 @@ func NewS3FileSystem(cfg *Config) (*S3FileSystem, error) {
 	}, nil
 }
 
-func (fs *S3FileSystem) Upload(data []byte, key string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	
-	contentType := getContentType(key)
-	
-	_, err := fs.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(fs.bucket),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(data),
-		ContentType: aws.String(contentType),
-	})
-	
-	return err
-}
-
-func (fs *S3FileSystem) UploadReader(reader io.Reader, key string) error {
+func (fs *S3FileSystem) UploadFile(reader io.Reader, key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	
@@ -109,7 +94,23 @@ func (fs *S3FileSystem) UploadReader(reader io.Reader, key string) error {
 	return err
 }
 
-func (fs *S3FileSystem) Delete(key string) error {
+func (fs *S3FileSystem) UploadBytes(data []byte, key string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	contentType := getContentType(key)
+	
+	_, err := fs.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(fs.bucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String(contentType),
+	})
+	
+	return err
+}
+
+func (fs *S3FileSystem) DeleteFile(key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
@@ -121,11 +122,11 @@ func (fs *S3FileSystem) Delete(key string) error {
 	return err
 }
 
-func (fs *S3FileSystem) GetURL(key string) string {
+func (fs *S3FileSystem) GetFileURL(key string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(fs.publicURL, "/"), key)
 }
 
-func (fs *S3FileSystem) Exists(key string) (bool, error) {
+func (fs *S3FileSystem) FileExists(key string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	
@@ -144,7 +145,7 @@ func (fs *S3FileSystem) Exists(key string) (bool, error) {
 	return true, nil
 }
 
-func (fs *S3FileSystem) Copy(sourceKey, destKey string) error {
+func (fs *S3FileSystem) CopyFile(sourceKey, destKey string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	
@@ -156,6 +157,47 @@ func (fs *S3FileSystem) Copy(sourceKey, destKey string) error {
 		Key:        aws.String(destKey),
 	})
 	
+	return err
+}
+
+func (fs *S3FileSystem) GetFile(key string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	result, err := fs.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(fs.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object from S3: %w", err)
+	}
+	defer result.Body.Close()
+	
+	return io.ReadAll(result.Body)
+}
+
+func (fs *S3FileSystem) ServeFile(w http.ResponseWriter, r *http.Request, key string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	result, err := fs.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(fs.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get object from S3: %w", err)
+	}
+	defer result.Body.Close()
+	
+	if result.ContentType != nil {
+		w.Header().Set("Content-Type", *result.ContentType)
+	}
+	
+	if result.ContentLength != nil {
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", *result.ContentLength))
+	}
+	
+	_, err = io.Copy(w, result.Body)
 	return err
 }
 
