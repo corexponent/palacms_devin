@@ -19,17 +19,37 @@ services:
     
     # Environment variables
     environment:
-      # Optional: Set initial superuser credentials
-      # These are only used on first startup to create the initial admin user
+      # Core PalaCMS configuration
       - PALA_SUPERUSER_EMAIL=${PALA_SUPERUSER_EMAIL:-}
       - PALA_SUPERUSER_PASSWORD=${PALA_SUPERUSER_PASSWORD:-}
-      
-      # Optional: Set initial PalaCMS user credentials
       - PALA_USER_EMAIL=${PALA_USER_EMAIL:-}
       - PALA_USER_PASSWORD=${PALA_USER_PASSWORD:-}
-      
-      # Optional: Version tag
       - PALA_VERSION=${PALA_VERSION:-3.0.0-beta.1}
+      
+      # Database configuration
+      - DATABASE_TYPE=${DATABASE_TYPE:-sqlite}
+      - DATABASE_URL=${DATABASE_URL:-}
+      
+      # AWS S3 Storage
+      - AWS_S3_ENABLED=${AWS_S3_ENABLED:-false}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-}
+      - AWS_S3_REGION=${AWS_S3_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-}
+      - AWS_S3_PUBLIC_URL=${AWS_S3_PUBLIC_URL:-}
+      
+      # AWS SES Email
+      - AWS_SES_ENABLED=${AWS_SES_ENABLED:-false}
+      - AWS_SES_REGION=${AWS_SES_REGION:-us-east-1}
+      - AWS_SES_FROM_ADDRESS=${AWS_SES_FROM_ADDRESS:-}
+      - AWS_SES_ACCESS_KEY_ID=${AWS_SES_ACCESS_KEY_ID:-}
+      - AWS_SES_SECRET_ACCESS_KEY=${AWS_SES_SECRET_ACCESS_KEY:-}
+      
+      # AWS CloudFront CDN
+      - AWS_CLOUDFRONT_ENABLED=${AWS_CLOUDFRONT_ENABLED:-false}
+      - AWS_CLOUDFRONT_DISTRIBUTION_ID=${AWS_CLOUDFRONT_DISTRIBUTION_ID:-}
+      - AWS_CLOUDFRONT_DOMAIN=${AWS_CLOUDFRONT_DOMAIN:-}
     
     # Volume for persistent data storage
     volumes:
