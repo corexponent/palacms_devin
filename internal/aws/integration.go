@@ -54,7 +54,7 @@ func Setup(app *pocketbase.PocketBase) (*Integration, error) {
 			integration.SESMailer = sesMailer
 			log.Printf("AWS SES mailer enabled: region=%s, from=%s", cfg.SESRegion, cfg.SESFromAddress)
 			
-			app.OnMailerSend().BindFunc(func(e *core.MailerSendEvent) error {
+			app.OnMailerSend().BindFunc(func(e *core.MailerEvent) error {
 				return sesMailer.Send(e.Message)
 			})
 		}
@@ -159,19 +159,18 @@ func setupS3FileHooks(app *pocketbase.PocketBase, s3fs *S3FileSystem) {
 	})
 	
 	app.OnFileDownloadRequest().BindFunc(func(e *core.FileDownloadRequestEvent) error {
-		s3Key := fmt.Sprintf("%s/%s/%s", e.Record.Collection().Name, e.Record.Id, e.File)
+		s3Key := fmt.Sprintf("%s/%s/%s", e.Record.Collection().Name, e.Record.Id, e.ServedName)
 		
 		exists, err := s3fs.FileExists(s3Key)
 		if err != nil || !exists {
-			return nil
+			return e.Next()
 		}
 		
 		if err := s3fs.ServeFile(e.Response, e.Request, s3Key); err != nil {
 			log.Printf("Failed to serve file from S3: %v", err)
-			return nil
+			return e.Next()
 		}
 		
-		e.PreventDefault()
 		return nil
 	})
 	

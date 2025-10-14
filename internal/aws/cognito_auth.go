@@ -120,11 +120,11 @@ func (ca *CognitoAuth) VerifyToken(token string) (bool, error) {
 }
 
 func SetupCognitoAuth(app *pocketbase.PocketBase, cognito *CognitoAuth) error {
-	app.OnRecordAuthRequest("users").BindFunc(func(e *core.RecordAuthRequestEvent) error {
+	app.OnRecordAuthWithPasswordRequest("users").BindFunc(func(e *core.RecordAuthWithPasswordRequestEvent) error {
 		authResult, err := cognito.AuthenticateUser(e.Identity, e.Password)
 		if err != nil {
 			log.Printf("Cognito authentication failed, falling back to PocketBase: %v", err)
-			return nil
+			return e.Next()
 		}
 		
 		log.Printf("User authenticated via Cognito: %s", e.Identity)

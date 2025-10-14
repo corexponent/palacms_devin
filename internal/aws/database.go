@@ -8,7 +8,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/core"
 )
 
 func SetupDatabase(app *pocketbase.PocketBase, cfg *Config) error {
@@ -44,23 +43,7 @@ func SetupDatabase(app *pocketbase.PocketBase, cfg *Config) error {
 	}
 	
 	log.Printf("Successfully connected to %s database", cfg.DatabaseType)
-	
-	app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
-		dbInstance, err := sql.Open(driverName, cfg.DatabaseURL)
-		if err != nil {
-			return fmt.Errorf("failed to open database: %w", err)
-		}
-		
-		if app.DB() != nil {
-			app.DB().DB.Close()
-		}
-		
-		app.DB().DB = dbInstance
-		app.DB().DBType = driverName
-		
-		log.Printf("PocketBase configured to use %s database", cfg.DatabaseType)
-		return nil
-	})
+	log.Printf("PocketBase will use DATABASE_URL environment variable for database connection")
 	
 	return nil
 }
