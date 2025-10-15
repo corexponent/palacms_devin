@@ -1,6 +1,6 @@
 import type { HandleClientError } from '@sveltejs/kit'
 import posthog, { initialized } from '$lib/PostHog'
-import { instance } from '$lib/instance'
+import { getInstance } from '$lib/instance'
 
 export const handleError: HandleClientError = async ({ error, status }) => {
 	// Only track errors if it's not a 404
@@ -8,8 +8,11 @@ export const handleError: HandleClientError = async ({ error, status }) => {
 		return
 	}
 
-	await initialized
-	posthog.captureException(error, {
-		version: instance.version
-	})
+        await initialized
+
+        const instance = await getInstance()
+
+        posthog.captureException(error, {
+                version: instance.version
+        })
 }

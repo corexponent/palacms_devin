@@ -13,8 +13,7 @@
 	import { manager, Pages, PageTypes, Sites } from '$lib/pocketbase/collections'
 	import type { ObjectOf } from '$lib/pocketbase/CollectionMapping.svelte'
 	import { site_context } from '$lib/builder/stores/context'
-	import { draggable, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-	import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
+        import { draggable, dropTargetForElements, attachClosestEdge, extractClosestEdge } from '$lib/builder/utils/dnd'
 	import type { Page } from '$lib/common/models/Page'
 	import { build_cms_page_url } from '$lib/pages'
 	import { goto } from '$app/navigation'
@@ -84,19 +83,19 @@
 
 	let drag_handle_element = $state()
 	let element = $state()
-	onMount(async () => {
-		draggable({
-			element,
-			dragHandle: drag_handle_element,
-			getInitialData: () => ({ page }),
-			onDragStart: () => {
-				is_dragging = true
+        onMount(async () => {
+                const destroyDrag = draggable({
+                        element,
+                        dragHandle: drag_handle_element,
+                        getInitialData: () => ({ page }),
+                        onDragStart: () => {
+                                is_dragging = true
 			},
 			onDrop: () => {
 				is_dragging = false
-			}
-		})
-		dropTargetForElements({
+                        }
+                })
+                dropTargetForElements({
 			element,
 			getData({ input, element }) {
 				return attachClosestEdge(
@@ -212,9 +211,12 @@
 						manager.commit()
 					})
 				}
-			}
-		})
-	})
+                        }
+                })
+                return () => {
+                        destroyDrag?.()
+                }
+        })
 
 	let is_dragging = $state(false)
 </script>

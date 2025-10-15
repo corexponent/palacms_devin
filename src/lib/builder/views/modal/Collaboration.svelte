@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { SiteRoleAssignment } from '$lib/common/models/SiteRoleAssignment'
-	import type { User } from '$lib/common/models/User'
-	import * as AlertDialog from '$lib/components/ui/alert-dialog'
-	import { Button } from '$lib/components/ui/button'
-	import * as Dialog from '$lib/components/ui/dialog'
-	import { instance } from '$lib/instance'
-	import type { ObjectOf } from '$lib/pocketbase/CollectionMapping.svelte'
-	import { manager, SiteRoleAssignments, Users, type Sites } from '$lib/pocketbase/collections'
-	import { self } from '$lib/pocketbase/PocketBase'
-	import Icon from '@iconify/svelte'
-	import { Loader } from 'lucide-svelte'
-	import { nanoid } from 'nanoid'
+        import { SiteRoleAssignment } from '$lib/common/models/SiteRoleAssignment'
+        import type { User } from '$lib/common/models/User'
+        import * as AlertDialog from '$lib/components/ui/alert-dialog'
+        import { Button } from '$lib/components/ui/button'
+        import * as Dialog from '$lib/components/ui/dialog'
+        import { getInstance, type InstanceInfo } from '$lib/instance'
+        import type { ObjectOf } from '$lib/pocketbase/CollectionMapping.svelte'
+        import { manager, SiteRoleAssignments, Users, type Sites } from '$lib/pocketbase/collections'
+        import { self } from '$lib/pocketbase/PocketBase'
+        import Icon from '@iconify/svelte'
+        import { Loader } from 'lucide-svelte'
+        import { nanoid } from 'nanoid'
+        import { onMount } from 'svelte'
 
 	let { site }: { site: ObjectOf<typeof Sites> } = $props()
 
@@ -20,7 +21,17 @@
 	let link = $state('')
 	let link_shown = $state(false)
 	let email = $state('')
-	let role = $state<SiteRoleAssignment['role']>('developer')
+        let role = $state<SiteRoleAssignment['role']>('developer')
+
+        const instance = $state<InstanceInfo | null>(null)
+
+        onMount(async () => {
+                try {
+                        instance = await getInstance()
+                } catch (error) {
+                        console.error('Failed to load instance info', error)
+                }
+        })
 
 	async function invite_collaborator() {
 		try {
@@ -256,7 +267,7 @@
 				</div>
 			</div>
 			<div>
-				{#if instance.smtp_enabled}
+                            {#if instance?.smtp_enabled}
 					<button type="submit" value="email">
 						{#if sending}
 							<Icon icon="eos-icons:three-dots-loading" />
