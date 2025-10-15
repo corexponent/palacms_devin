@@ -23,7 +23,7 @@
 	let email = $state('')
         let role = $state<SiteRoleAssignment['role']>('developer')
 
-        let instance = $state<InstanceInfo | null>(null)
+        const instance = $state<InstanceInfo | null>(null)
 
         onMount(async () => {
                 try {
